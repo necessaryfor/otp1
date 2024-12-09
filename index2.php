@@ -106,7 +106,7 @@
       <div class="input-left-slot">
         <div class="i-ic:round-phone-android w-24px h-24px text-$primary mr-16px"></div>
       </div>
-      <input type="number" autocomplete="off" placeholder="Phone + area code" class="w-full" name="phoneNumber" id="phoneNumber">
+      <input type="number" autocomplete="off" placeholder="Phone Number + area code" class="w-full" name="phoneNumber" id="phoneNumber">
       <button class="send-code-button" id="sendCodeButton">Send Code</button>
     </div>
   </div>
