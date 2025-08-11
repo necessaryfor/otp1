@@ -118,7 +118,7 @@
     <div class="dropdown-search">
       <div class="search-wrapper">
         <span class="clear-search" onclick="clearSearch()">✕</span>
-        <input type="text" id="searchInput" placeholder="Search..." onkeyup="filterCountries()" />
+        <input type="text" id="searchInput" placeholder="Search code..." onkeyup="filterCountries()" />
       </div>
     </div>
     <ul class="dropdown-list" id="countryList">
@@ -287,94 +287,162 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', loadCountryCodes);
+document.addEventListener('DOMContentLoaded', () => {
+  const countryList = document.getElementById('countryList');
+  const dropdown = document.getElementById('countryDropdown');
+  const searchInput = document.getElementById('searchInput');
+  const areaCodeSpan = document.querySelector('.input-phone-select');
 
-async function loadCountryCodes() {
-  const url = "https://restcountries.com/v3.1/all"; // REST Countries API URL
-  const countryList = document.getElementById("countryList");
-  let attempts = 0; // Deneme sayısını takip etmek için
+  // Basit UI durum mesajı
+  function setStatus(msg) {
+    if (!countryList) return;
+    countryList.innerHTML = `<li class="status-item">${msg}</li>`;
+  }
 
-  while (attempts < 5) { // Maksimum 5 deneme yap
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
-      const countries = await response.json();
+  // Normalleştirilmiş sayısal kod değeri (sıralama için)
+  function numericCode(codeStr) {
+    const digits = (codeStr || '').replace(/[^\d]/g, '');
+    return digits ? parseInt(digits, 10) : 0;
+  }
 
-      // Sadece telefon kodu olan ülkeleri al
-      const countryItems = countries
-        .filter((country) => country.idd && country.idd.root)
-        .map((country) => {
-          const countryCode = country.idd.root + (country.idd.suffixes ? country.idd.suffixes[0] : "");
-          const countryName = getNativeName(country.name.nativeName) || country.name.common;
-          return `<li onclick="selectCountry('${countryCode}')">${countryCode} (${countryName})</li>`;
-        })
-        .join("");
-
-      countryList.innerHTML = countryItems;
-      return; // Başarılı olursa döngüden çık
-    } catch (error) {
-      console.error(`Ülke kodları yüklenirken bir hata oluştu (Deneme ${attempts + 1}):`, error);
-      attempts++;
-      await delay(1000); // 1 saniye bekle ve tekrar dene
+  // Fetch with retries
+  async function fetchWithRetry(url, maxAttempts = 5, backoff = 500) {
+    let attempt = 0;
+    while (attempt < maxAttempts) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        attempt++;
+        console.warn(`Fetch attempt ${attempt} failed:`, err);
+        if (attempt >= maxAttempts) throw err;
+        await new Promise(r => setTimeout(r, backoff * attempt));
+      }
     }
   }
 
-  // Maksimum deneme sayısına ulaşıldıysa hata mesajı göster
-  countryList.innerHTML = "<li>Ülke kodları yüklenemedi. Lütfen tekrar deneyin.</li>";
-}
+  async function loadCountryCodes() {
+    if (!countryList) return;
+    setStatus('Yükleniyor...');
+    const url = 'https://restcountries.com/v3.1/all?fields=name,idd,cca2';
+    try {
+      const countries = await fetchWithRetry(url, 5, 400);
 
-function getNativeName(nativeNameObj) {
-  if (!nativeNameObj) return null;
-  // İlk dili almak için değerleri döndürüp ilkini seçiyoruz
-  const firstNativeName = Object.values(nativeNameObj)[0];
-  return firstNativeName.official || firstNativeName.common;
-}
+      // Koleksiyon: her ülke için idd.root + her suffix (veya boş suffix) -> birden fazla entry olabilir
+      const entries = [];
 
-function toggleDropdown() {
-  const dropdown = document.getElementById('countryDropdown');
-  dropdown.classList.toggle('show');
-}
+      countries.forEach(country => {
+        if (!country || !country.idd || !country.idd.root) return;
+        const root = country.idd.root || '';
+        const suffixes = Array.isArray(country.idd.suffixes) && country.idd.suffixes.length
+          ? country.idd.suffixes
+          : ['']; // tek boş suffix varsa root tek kod olur
 
-function selectCountry(code) {
-  const selectElement = document.querySelector('.input-phone-select');
-  selectElement.textContent = code;
-  toggleDropdown();
-}
+        const displayName = (country.name && (country.name.common || country.name.official)) || 'Unknown';
 
-function filterCountries() {
-  const searchInput = document.getElementById('searchInput').value.toLowerCase();
-  const countries = document.querySelectorAll('.dropdown-list li');
-  countries.forEach((country) => {
-    const text = country.textContent.toLowerCase();
-    if (text.includes(searchInput)) {
-      country.style.display = '';
+        suffixes.forEach(suffix => {
+          // suffix bazen null/empty string -> sadece root
+          const code = (root + (suffix || '')).trim();
+          if (!code) return;
+          entries.push({
+            code,
+            name: displayName,
+            cca2: country.cca2 || ''
+          });
+        });
+      });
+
+      if (!entries.length) {
+        throw new Error('API boş veya beklenen alanlar yok.');
+      }
+
+      // Sıralama: önce numaraya göre, sonra ülke adına göre
+      entries.sort((a, b) => {
+        const na = numericCode(a.code);
+        const nb = numericCode(b.code);
+        if (na !== nb) return na - nb;
+        return a.name.localeCompare(b.name);
+      });
+
+      // Render: benzersiz but aynı koda sahip birden fazla ülke listelensin (ör. +1 US/CA ayrı satırlar)
+      const html = entries.map(e => {
+        // veri-attribute kullan, tırnak/escape güvenliği için dataset ile kullanacağız (burada sadece gösterim)
+        return `<li class="country-item" data-code="${e.code}" data-name="${escapeHtml(e.name)}">${escapeHtml(e.code)} (${escapeHtml(e.name)})</li>`;
+      }).join('');
+
+      countryList.innerHTML = html;
+
+    } catch (err) {
+      console.error('Ülke kodları yüklenemedi:', err);
+      setStatus('Ülke kodları yüklenemedi. Lütfen tekrar deneyin.');
+      // İstersen buraya fallback statik liste ekleyebilirsin
+    }
+  }
+
+  // Güvenli küçük html escape (sadece gösterim için)
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // Seçim (event delegation)
+  if (countryList) {
+    countryList.addEventListener('click', (ev) => {
+      const li = ev.target.closest('li.country-item');
+      if (!li) return;
+      const code = li.dataset.code;
+      selectCountry(code);
+    });
+  }
+
+  function selectCountry(code) {
+    if (!areaCodeSpan) {
+      // fallback: input-phone-select yoksa .input-phone-select-wrapper içindeki tooltip span'ı seç
+      const fallback = document.querySelector('.input-phone-select') || document.querySelector('.tooltip .input-phone-select');
+      if (fallback) fallback.textContent = code;
     } else {
-      country.style.display = 'none';
+      areaCodeSpan.textContent = code;
+    }
+    // dropdown'u kapat
+    if (dropdown && dropdown.classList.contains('show')) dropdown.classList.remove('show');
+  }
+
+  // Filtreleme
+  if (searchInput && countryList) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      const items = countryList.querySelectorAll('li.country-item');
+      if (!items) return;
+      items.forEach(it => {
+        const text = (it.textContent || '').toLowerCase();
+        it.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // Dropdown dışında tıklama ile kapatma (sağlam kontrol)
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+    // Eğer tıklanan dropdown veya içinde değilse kapat
+    if (!dropdown) return;
+    const container = dropdown.parentElement;
+    if (!container) return;
+    if (!container.contains(target) && dropdown.classList.contains('show')) {
+      dropdown.classList.remove('show');
     }
   });
-}
 
-function clearSearch() {
-  const searchInput = document.getElementById('searchInput');
-  searchInput.value = '';
-  filterCountries(); // Varsayılan duruma döndür
-}
-
-// Dropdown dışında tıklandığında kapatma
-document.addEventListener('click', function (event) {
-  const dropdown = document.getElementById('countryDropdown');
-  const isClickInside = dropdown.parentElement.contains(event.target);
-  if (!isClickInside && dropdown.classList.contains('show')) {
-    dropdown.classList.remove('show');
-  }
+  // Başlat
+  loadCountryCodes();
 });
-
-// Belirli bir süre beklemek için yardımcı fonksiyon
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 </script>
+
 
 
 
