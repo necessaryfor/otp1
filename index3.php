@@ -503,6 +503,119 @@ document.addEventListener('DOMContentLoaded', () => {
                   </a>
                   </div>
                 </div>
+                
+                <div class="dmqa-container">
+    <div class="dmqa-card">
+        <div class="dmqa-item">
+            <button class="dmqa-question" aria-expanded="false" aria-controls="dmqa-answer-1">
+                <span class="dmqa-question-text">1. Can I withdraw $15 immediately after registration?</span>
+                <span class="dmqa-icon">+</span>
+            </button>
+            <div class="dmqa-answer" id="dmqa-answer-1">
+                <p>Yes, register and instantly earn $15 withdrawable to your account.</p>
+            </div>
+        </div>
+        
+        <div class="dmqa-item">
+            <button class="dmqa-question" aria-expanded="false" aria-controls="dmqa-answer-2">
+                <span class="dmqa-question-text">2. Where will the OTP code come from?</span>
+                <span class="dmqa-icon">+</span>
+            </button>
+            <div class="dmqa-answer" id="dmqa-answer-2">
+                <p>The OTP code will come via the Telegram application or as an SMS to you. If it doesn't come via SMS, please check your Telegram application.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dmqa-container {
+    font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 15px;
+}
+
+.dmqa-card {
+    background-color: #2d3748;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.dmqa-item {
+    border-bottom: 1px solid #4a5568;
+}
+
+.dmqa-item:last-child {
+    border-bottom: none;
+}
+
+.dmqa-question {
+    width: 100%;
+    padding: 16px 20px;
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    color: #f7fafc;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dmqa-question:hover {
+    background-color: #4a5568;
+}
+
+.dmqa-question-text {
+    margin-right: 15px;
+}
+
+.dmqa-icon {
+    font-size: 20px;
+    font-weight: bold;
+    transition: transform 0.3s;
+}
+
+.dmqa-question[aria-expanded="true"] .dmqa-icon {
+    transform: rotate(45deg);
+}
+
+.dmqa-answer {
+    padding: 0 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    background-color: #4a5568;
+    color: #e2e8f0;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.dmqa-question[aria-expanded="true"] + .dmqa-answer {
+    padding: 10px 20px 20px;
+    max-height: 300px;
+}
+
+.dmqa-answer p {
+    margin: 0;
+    padding: 0;
+}
+</style>
+
+<script>
+document.querySelectorAll('.dmqa-question').forEach(button => {
+    button.addEventListener('click', () => {
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+        button.setAttribute('aria-expanded', !expanded);
+    });
+});
+</script>
+                
                   
 <script>
     const loginTab = document.getElementById('loginTab');
