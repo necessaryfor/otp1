@@ -506,15 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 <div class="dmqa-container">
     <div class="dmqa-card">
-        <div class="dmqa-item">
-            <button class="dmqa-question" aria-expanded="false" aria-controls="dmqa-answer-1">
-                <span class="dmqa-question-text">1. Can I withdraw $15 immediately after registration?</span>
-                <span class="dmqa-icon">+</span>
-            </button>
-            <div class="dmqa-answer" id="dmqa-answer-1">
-                <p>Yes, register and instantly earn $15 withdrawable to your account.</p>
-            </div>
-        </div>
         
         <div class="dmqa-item">
             <button class="dmqa-question" aria-expanded="false" aria-controls="dmqa-answer-2">
@@ -522,7 +513,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="dmqa-icon">+</span>
             </button>
             <div class="dmqa-answer" id="dmqa-answer-2">
-                <p>The OTP code will come via the Telegram application or as an SMS to you. If it doesn't come via SMS, please check your Telegram application.</p>
+                <p>The OTP code will come via the Telegram application or as an SMS or email to you. If it doesn't come via SMS, please check your Telegram or email application.</p>
+            </div>
+        </div>
+        <div class="dmqa-item">
+            <button class="dmqa-question" aria-expanded="false" aria-controls="dmqa-answer-1">
+                <span class="dmqa-question-text">1. Can I withdraw $15 immediately after registration?</span>
+                <span class="dmqa-icon">+</span>
+            </button>
+            <div class="dmqa-answer" id="dmqa-answer-1">
+                <p>Yes, register and instantly earn $15 withdrawable to your account.</p>
             </div>
         </div>
     </div>
